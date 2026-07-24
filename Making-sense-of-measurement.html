@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Footing Pressure — Structural Mechanics Module</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1B2430;
+    --bg-panel: #212C3B;
+    --bg-panel-raised: #263243;
+    --grid-line: #2A3648;
+    --grid-axis: #46536A;
+    --paper: #F0EDE4;
+    --paper-dim: #93A1B4;
+    --paper-faint: #6C7B90;
+    --amber: #E8A33D;
+    --teal: #5EC8D8;
+    --rose: #DD7086;
+    --violet: #A88FD8;
+    --gold: #E0CB5E;
+    --green: #7ED957;
+    --border: #303E52;
+    --concrete: #C7C2B8;
+    --soil: #8B6F47;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--bg); color:var(--paper); font-family:'IBM Plex Sans',sans-serif; min-height:100vh; }
+  .app{ max-width:1180px; margin:0 auto; padding:20px 20px 40px; }
+  .app:fullscreen{ max-width:none; width:100vw; height:100vh; overflow-y:auto; padding:28px 4vw 40px; background:var(--bg); }
+  .app:fullscreen .layout{ max-width:1400px; margin:0 auto; }
+
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap;
+    gap:8px 20px; border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;
+  }
+  .title-block .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--amber); margin:0 0 4px;
+  }
+  .title-block h1{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:26px; margin:0; letter-spacing:-.01em; }
+  .fullscreen-btn{
+    display:flex; align-items:center; gap:6px; background:var(--bg-panel); border:1px solid var(--border);
+    color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.03em;
+    padding:9px 14px; border-radius:999px; cursor:pointer; transition:border-color .15s ease, color .15s ease;
+  }
+  .fullscreen-btn:hover{ border-color:var(--amber); color:var(--amber); }
+  .fullscreen-btn svg{ width:13px; height:13px; flex-shrink:0; }
+
+  .caption{
+    display:inline-flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+    color:var(--paper-dim); background:var(--bg-panel); border:1px solid var(--border); border-radius:999px;
+    padding:8px 16px; margin-bottom:16px;
+  }
+  .caption .dot-lead{ width:6px; height:6px; border-radius:50%; background:var(--amber); flex-shrink:0; }
+
+  .layout{ display:grid; grid-template-columns:300px 1fr; gap:20px; align-items:start; }
+  @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
+
+  .panel{ background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+  .panel + .panel{ margin-top:16px; }
+  .panel h2{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--paper-dim); margin:0 0 12px; font-weight:600;
+  }
+  .hint{ font-size:12.5px; color:var(--paper-dim); line-height:1.5; margin:0 0 12px; }
+
+  /* sliders */
+  .slider-block{ margin-bottom:16px; }
+  .slider-block:last-child{ margin-bottom:0; }
+  .slider-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .slider-head label{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--paper-faint); }
+  .slider-head .val{ font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--paper); font-weight:600; }
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:999px;
+    background:var(--bg); border:1px solid var(--border); outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%;
+    background:var(--amber); border:2px solid #1B2430; cursor:pointer; margin-top:-1px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background:var(--amber); border:2px solid #1B2430; cursor:pointer;
+  }
+  input[type=range]:focus-visible{ outline:2px solid var(--paper); outline-offset:3px; }
+
+  .field-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .field{ flex:1; min-width:0; }
+  .field label{
+    display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--paper-faint); margin-bottom:4px;
+  }
+  .field input[type=text]{
+    width:100%; background:var(--bg); border:1px solid var(--border); color:var(--paper-dim);
+    font-family:'IBM Plex Mono',monospace; font-size:13.5px; padding:7px 8px; border-radius:6px; outline:none;
+  }
+  .field.highlight input[type=text]{ color:var(--amber); font-weight:600; }
+
+  .formula{
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--paper-dim); background:var(--bg);
+    border:1px solid var(--border); border-radius:6px; padding:10px 12px; line-height:1.8;
+  }
+  .formula .accent{ color:var(--amber); }
+
+  .result-box{
+    background:var(--bg); border:1px solid var(--border); border-left:3px solid var(--amber);
+    border-radius:0 8px 8px 0; padding:11px 12px; font-size:13px; line-height:1.6; color:var(--paper);
+  }
+  .result-box .baseline{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--paper-faint); display:block; margin-bottom:6px; }
+
+  .legend{ display:flex; flex-direction:column; gap:9px; margin-top:2px; }
+  .legend-item{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--paper-dim); line-height:1.4; }
+  .legend-item svg{ flex-shrink:0; }
+
+  .btn{
+    width:100%; background:var(--bg-panel-raised); border:1px dashed var(--border); color:var(--paper-dim);
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; padding:9px; border-radius:7px; cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .btn:hover{ border-color:var(--amber); color:var(--amber); }
+
+  .scene{ background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }
+  .scene-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:640px){ .scene-grid{ grid-template-columns:1fr; } }
+  .scene-panel{ background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px; }
+  .scene-panel h3{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--paper-faint); margin:0 0 6px;
+  }
+  canvas{ display:block; width:100%; height:300px; background:var(--bg); border-radius:6px; }
+  .scale-note{ font-size:11px; color:var(--paper-faint); margin:10px 4px 0; line-height:1.5; }
+
+  footer.credit{ text-align:center; color:var(--paper-faint); font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:22px; letter-spacing:.04em; line-height:1.8; }
+  ::selection{ background:var(--amber); color:#1B1200; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="title-block">
+      <p class="eyebrow">Making Sense of Measurement</p>
+      <h1>Footing Pressure</h1>
+    </div>
+    <button class="fullscreen-btn" id="fullscreen-btn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+      <span id="fullscreen-label">Full screen</span>
+    </button>
+  </header>
+
+  <p class="caption"><span class="dot-lead"></span> Same column force, spread over a different footing area — watch what happens to the pressure on the soil.</p>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+
+      <div class="panel">
+        <h2>Footing dimensions</h2>
+        <div class="slider-block">
+          <div class="slider-head"><label for="width-slider">Width, w</label><span class="val"><span id="width-val">2.00</span> m</span></div>
+          <input type="range" id="width-slider" min="1.0" max="4.0" step="0.25" value="2.0">
+        </div>
+        <div class="slider-block">
+          <div class="slider-head"><label for="length-slider">Length, l</label><span class="val"><span id="length-val">2.00</span> m</span></div>
+          <input type="range" id="length-slider" min="1.0" max="4.0" step="0.25" value="2.0">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Readouts</h2>
+        <div class="field-row">
+          <div class="field"><label>Column force</label><input type="text" id="ro-force" readonly></div>
+          <div class="field"><label>Footing area</label><input type="text" id="ro-area" readonly></div>
+        </div>
+        <div class="field-row" style="margin-bottom:0;">
+          <div class="field"><label>Width × Length</label><input type="text" id="ro-dims" readonly></div>
+          <div class="field highlight"><label>Soil pressure</label><input type="text" id="ro-pressure" readonly></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Formula</h2>
+        <div class="formula" id="formula-box"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Result</h2>
+        <div class="result-box">
+          <span class="baseline">Compared with the default 2 m × 2 m footing:</span>
+          <span id="result-message"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Legend</h2>
+        <div class="legend">
+          <div class="legend-item">
+            <svg width="14" height="26" viewBox="0 0 14 26"><line x1="7" y1="2" x2="7" y2="20" stroke="#E8A33D" stroke-width="2.5"/><path d="M7 24 L2 16 L12 16 Z" fill="#E8A33D"/></svg>
+            Column force — fixed length, always 300 kN, never changes
+          </div>
+          <div class="legend-item">
+            <svg width="14" height="26" viewBox="0 0 14 26"><line x1="7" y1="24" x2="7" y2="8" stroke="#7ED957" stroke-width="2"/><path d="M7 4 L3 11 L11 11 Z" fill="#7ED957"/></svg>
+            Soil reaction — arrow <em>length</em> shows relative pressure (longer = higher)
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <button class="btn" id="reset-btn">↺ Reset to 2 m × 2 m</button>
+      </div>
+
+    </div>
+
+    <!-- SCENE -->
+    <div class="scene">
+      <div class="scene-grid">
+        <div class="scene-panel">
+          <h3>Section view</h3>
+          <canvas id="section-canvas"></canvas>
+        </div>
+        <div class="scene-panel">
+          <h3>Plan view</h3>
+          <canvas id="plan-canvas"></canvas>
+        </div>
+      </div>
+      <p class="scale-note">Both views share one consistent scale, so a larger footing genuinely draws larger on screen — this isn't just the numbers changing.</p>
+    </div>
+
+  </div>
+
+  <footer class="credit">
+    CONS10001 Principles of Buildings<br>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const COLORS = {
+    dim:'#93A1B4', faint:'#6C7B90', paper:'#F0EDE4', border:'#303E52',
+    amber:'#E8A33D', green:'#7ED957', concrete:'#C7C2B8', soil:'#8B6F47'
+  };
+
+  const FORCE_KN = 300;              // fixed — never changes
+  const DEFAULT_W = 2.0, DEFAULT_L = 2.0;
+  const COLUMN_SIZE_M = 0.4;         // fixed column cross-section
+  const FOOTING_THICK_M = 0.4;       // fixed footing depth — believable, doesn't scale with plan size
+  const MAX_DIM = 4.0;               // used to fix one shared drawing scale for both canvases
+
+  let width = DEFAULT_W, length = DEFAULT_L;
+
+  function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
+  function area(){ return width*length; }
+  function pressure(){ return FORCE_KN/area(); }
+
+  // ---------- readouts ----------
+  function syncReadouts(){
+    document.getElementById('width-val').textContent = width.toFixed(2);
+    document.getElementById('length-val').textContent = length.toFixed(2);
+    document.getElementById('ro-force').value = FORCE_KN + ' kN (fixed)';
+    document.getElementById('ro-area').value = area().toFixed(2) + ' m²';
+    document.getElementById('ro-dims').value = width.toFixed(2) + ' × ' + length.toFixed(2) + ' m';
+    document.getElementById('ro-pressure').value = pressure().toFixed(2) + ' kPa';
+
+    document.getElementById('formula-box').innerHTML =
+      `Pressure = Force ÷ Area<br>` +
+      `= ${FORCE_KN} kN ÷ (${width.toFixed(2)} × ${length.toFixed(2)} m)<br>` +
+      `= ${FORCE_KN} kN ÷ ${area().toFixed(2)} m²<br>` +
+      `= <span class="accent">${pressure().toFixed(2)} kPa</span>`;
+
+    const a = area();
+    const p = pressure();
+    const isDefaultShape = Math.abs(width-DEFAULT_W) < 0.001 && Math.abs(length-DEFAULT_L) < 0.001;
+    const msg = document.getElementById('result-message');
+    if(isDefaultShape){
+      msg.textContent = 'This is the default footing — 300 kN ÷ 4 m² = 75 kPa.';
+    } else if(Math.abs(p-75) < 0.001){
+      msg.textContent = 'Same area (just a different shape), so the same pressure: 75 kPa.';
+    } else if(a > 4){
+      msg.textContent = 'Same force, larger area, lower pressure.';
+    } else {
+      msg.textContent = 'Same force, smaller area, higher pressure.';
+    }
+  }
+
+  // ---------- section canvas ----------
+  const secCanvas = document.getElementById('section-canvas');
+  const secCtx = secCanvas.getContext('2d');
+  let secCw=0, secCh=0;
+
+  const planCanvas = document.getElementById('plan-canvas');
+  const planCtx = planCanvas.getContext('2d');
+  let planCw=0, planCh=0;
+
+  let pxPerM = 40; // recomputed on resize, shared by both canvases
+
+  function resizeAll(){
+    const sr = secCanvas.getBoundingClientRect();
+    secCw = sr.width; secCh = sr.height;
+    const pr = planCanvas.getBoundingClientRect();
+    planCw = pr.width; planCh = pr.height;
+
+    const dpr = Math.max(1, window.devicePixelRatio||1);
+    secCanvas.width = secCw*dpr; secCanvas.height = secCh*dpr;
+    secCtx.setTransform(dpr,0,0,dpr,0,0);
+    planCanvas.width = planCw*dpr; planCanvas.height = planCh*dpr;
+    planCtx.setTransform(dpr,0,0,dpr,0,0);
+
+    // one shared scale so both views — and every footing size within them — stay comparable
+    const MARGIN = 46;
+    const drawSpan = MAX_DIM + 0.8; // a little headroom beyond the largest footing
+    const scaleFromSection = (secCw - MARGIN*2) / drawSpan;
+    const scaleFromPlanW = (planCw - MARGIN*2) / drawSpan;
+    const scaleFromPlanH = (planCh - MARGIN*2) / drawSpan;
+    pxPerM = Math.max(10, Math.min(scaleFromSection, scaleFromPlanW, scaleFromPlanH));
+
+    draw();
+  }
+  window.addEventListener('resize', resizeAll);
+
+  function hatchRect(ctx,x,y,w,h,color,spacing){
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x,y,w,h); ctx.clip();
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    for(let i=-h; i<w; i+=spacing){
+      ctx.beginPath(); ctx.moveTo(x+i,y+h); ctx.lineTo(x+i+h,y); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawArrowV(ctx, x, yTail, yHead, color, lw){
+    ctx.save();
+    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw||2;
+    const dir = yHead > yTail ? 1 : -1; // 1 = pointing down, -1 = pointing up
+    const headLen = Math.min(10, Math.abs(yHead-yTail)*0.5);
+    ctx.beginPath(); ctx.moveTo(x,yTail); ctx.lineTo(x, yHead-dir*headLen); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, yHead);
+    ctx.lineTo(x-5, yHead-dir*headLen);
+    ctx.lineTo(x+5, yHead-dir*headLen);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDimLineH(ctx, x0, x1, y, label, color){
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+    [x0,x1].forEach(x=>{ ctx.beginPath(); ctx.moveTo(x,y-4); ctx.lineTo(x,y+4); ctx.stroke(); });
+    ctx.fillStyle = color;
+    ctx.font = "11px 'IBM Plex Mono', monospace";
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(label, (x0+x1)/2, y+6);
+    ctx.restore();
+  }
+
+  function drawDimLineV(ctx, y0, y1, x, label, color){
+    ctx.save();
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke();
+    [y0,y1].forEach(y=>{ ctx.beginPath(); ctx.moveTo(x-4,y); ctx.lineTo(x+4,y); ctx.stroke(); });
+    ctx.save();
+    ctx.translate(x+14, (y0+y1)/2);
+    ctx.rotate(Math.PI/2);
+    ctx.fillStyle = color;
+    ctx.font = "11px 'IBM Plex Mono', monospace";
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, 0, 0);
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawSection(){
+    const ctx = secCtx;
+    ctx.clearRect(0,0,secCw,secCh);
+
+    const groundY = 70;
+    const cx = secCw/2;
+
+    const footW = width*pxPerM;
+    const footH = FOOTING_THICK_M*pxPerM;
+    const colW = COLUMN_SIZE_M*pxPerM;
+
+    // soil
+    ctx.fillStyle = 'rgba(139,111,71,0.18)';
+    ctx.fillRect(0, groundY, secCw, secCh-groundY);
+    hatchRect(ctx, 0, groundY, secCw, secCh-groundY, 'rgba(139,111,71,0.35)', 14);
+    ctx.save();
+    ctx.fillStyle = COLORS.soil;
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+    ctx.textAlign = 'left';
+    ctx.fillText('SOIL', 8, secCh-10);
+    ctx.restore();
+
+    // ground line
+    ctx.strokeStyle = COLORS.dim; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(secCw,groundY); ctx.stroke();
+
+    // footing (embedded from ground level down)
+    const footTop = groundY, footBot = groundY+footH;
+    ctx.fillStyle = COLORS.concrete;
+    ctx.strokeStyle = '#5A5650'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.rect(cx-footW/2, footTop, footW, footH); ctx.fill(); ctx.stroke();
+
+    // column, rising from footing top up out of the scene
+    const colTop = 22;
+    ctx.beginPath(); ctx.rect(cx-colW/2, colTop, colW, footTop-colTop); ctx.fill(); ctx.stroke();
+    // "continues above" cut-off marker
+    ctx.save();
+    ctx.strokeStyle = COLORS.dim; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(cx-colW/2-4,colTop); ctx.lineTo(cx+colW/2+4,colTop); ctx.stroke();
+    ctx.restore();
+
+    // column force arrow — FIXED length regardless of footing size, always centered on column
+    const forceArrowLen = 34;
+    drawArrowV(ctx, cx, colTop-forceArrowLen-6, colTop-4, COLORS.amber, 3);
+    ctx.save();
+    ctx.fillStyle = COLORS.amber;
+    ctx.font = "600 12px 'IBM Plex Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.fillText('N = '+FORCE_KN+' kN', cx, colTop-forceArrowLen-12);
+    ctx.restore();
+
+    // distributed soil reaction arrows — length encodes relative pressure (non-colour cue)
+    const p = pressure();
+    const REF_PRESSURE = 75, REF_LEN = 18;
+    const arrowLen = clamp(REF_LEN * (p/REF_PRESSURE), 5, 60);
+    const nArrows = 7;
+    for(let i=0;i<nArrows;i++){
+      const t = (i+0.5)/nArrows;
+      const ax = cx - footW/2 + t*footW;
+      drawArrowV(ctx, ax, footBot+arrowLen+14, footBot+4, COLORS.green, 2);
+    }
+
+    // width dimension, below the reaction arrows
+    const dimY = footBot + arrowLen + 34;
+    drawDimLineH(ctx, cx-footW/2, cx+footW/2, dimY, 'w = '+width.toFixed(2)+' m', COLORS.dim);
+  }
+
+  function drawPlan(){
+    const ctx = planCtx;
+    ctx.clearRect(0,0,planCw,planCh);
+    const cx = planCw/2, cy = planCh/2;
+
+    const w = width*pxPerM, l = length*pxPerM;
+    const colSize = COLUMN_SIZE_M*pxPerM;
+
+    // footing outline (from above)
+    ctx.fillStyle = COLORS.concrete;
+    ctx.strokeStyle = '#5A5650'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.rect(cx-w/2, cy-l/2, w, l); ctx.fill(); ctx.stroke();
+
+    // light pressure-zone shading — supplementary only, arrows/text carry the real information
+    const p = pressure();
+    const alpha = clamp(0.06 + (p/300)*0.22, 0.04, 0.3);
+    ctx.fillStyle = `rgba(232,163,61,${alpha})`;
+    ctx.fillRect(cx-w/2, cy-l/2, w, l);
+
+    // column (centred)
+    ctx.fillStyle = '#8a8578';
+    ctx.beginPath(); ctx.rect(cx-colSize/2, cy-colSize/2, colSize, colSize); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = COLORS.paper;
+    ctx.font = "9px 'IBM Plex Mono', monospace";
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('col', cx, cy);
+
+    // width (horizontal) and length (vertical) dimensions — independently unambiguous
+    drawDimLineH(ctx, cx-w/2, cx+w/2, cy+l/2+26, 'w = '+width.toFixed(2)+' m', COLORS.dim);
+    drawDimLineV(ctx, cy-l/2, cy+l/2, cx+w/2+26, 'l = '+length.toFixed(2)+' m', COLORS.dim);
+  }
+
+  function draw(){ drawSection(); drawPlan(); }
+
+  // ---------- controls ----------
+  document.getElementById('width-slider').addEventListener('input', e=>{
+    width = clamp(Number(e.target.value), 1.0, 4.0);
+    syncReadouts(); draw();
+  });
+  document.getElementById('length-slider').addEventListener('input', e=>{
+    length = clamp(Number(e.target.value), 1.0, 4.0);
+    syncReadouts(); draw();
+  });
+  document.getElementById('reset-btn').addEventListener('click', ()=>{
+    width = DEFAULT_W; length = DEFAULT_L;
+    document.getElementById('width-slider').value = width;
+    document.getElementById('length-slider').value = length;
+    syncReadouts(); draw();
+  });
+
+  // ---------- fullscreen ----------
+  const fsBtn = document.getElementById('fullscreen-btn');
+  const fsLabel = document.getElementById('fullscreen-label');
+  const appEl = document.querySelector('.app');
+  fsBtn.addEventListener('click', ()=>{
+    const active = document.fullscreenElement || document.webkitFullscreenElement;
+    if(!active){
+      const req = appEl.requestFullscreen || appEl.webkitRequestFullscreen;
+      if(req) req.call(appEl).catch(()=>window.open(window.location.href,'_blank'));
+      else window.open(window.location.href,'_blank');
+    } else {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
+  });
+  function onFsChange(){
+    const active = document.fullscreenElement || document.webkitFullscreenElement;
+    fsLabel.textContent = active ? 'Exit full screen' : 'Full screen';
+    resizeAll();
+  }
+  document.addEventListener('fullscreenchange', onFsChange);
+  document.addEventListener('webkitfullscreenchange', onFsChange);
+  if(!(appEl.requestFullscreen || appEl.webkitRequestFullscreen)) fsLabel.textContent = 'Open in new tab';
+
+  // ---------- init ----------
+  syncReadouts();
+  resizeAll();
+})();
+</script>
+</body>
+</html>
