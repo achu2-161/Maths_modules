@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shape &amp; Stiffness — Structural Mechanics Module</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1B2430;
+    --bg-panel: #212C3B;
+    --bg-panel-raised: #263243;
+    --grid-line: #2A3648;
+    --grid-axis: #46536A;
+    --paper: #F0EDE4;
+    --paper-dim: #93A1B4;
+    --paper-faint: #6C7B90;
+    --amber: #E8A33D;
+    --teal: #5EC8D8;
+    --rose: #DD7086;
+    --violet: #A88FD8;
+    --gold: #E0CB5E;
+    --green: #7ED957;
+    --border: #303E52;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{ background:var(--bg); color:var(--paper); font-family:'IBM Plex Sans',sans-serif; min-height:100vh; }
+  .app{ max-width:1180px; margin:0 auto; padding:20px 20px 40px; }
+  .app:fullscreen{ max-width:none; width:100vw; height:100vh; overflow-y:auto; padding:28px 4vw 40px; background:var(--bg); }
+  .app:fullscreen .layout{ max-width:1400px; margin:0 auto; }
+
+  header.top{
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap;
+    gap:8px 20px; border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:16px;
+  }
+  .title-block .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--amber); margin:0 0 4px;
+  }
+  .title-block h1{ font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:26px; margin:0; letter-spacing:-.01em; }
+  .top-controls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .fullscreen-btn{
+    display:flex; align-items:center; gap:6px; background:var(--bg-panel); border:1px solid var(--border);
+    color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.03em;
+    padding:9px 14px; border-radius:999px; cursor:pointer; transition:border-color .15s ease, color .15s ease;
+  }
+  .fullscreen-btn:hover{ border-color:var(--amber); color:var(--amber); }
+  .fullscreen-btn svg{ width:13px; height:13px; flex-shrink:0; }
+
+  .caption{
+    display:inline-flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:12.5px;
+    color:var(--paper-dim); background:var(--bg-panel); border:1px solid var(--border); border-radius:999px;
+    padding:8px 16px; margin-bottom:16px;
+  }
+  .caption .dot-lead{ width:6px; height:6px; border-radius:50%; background:var(--amber); flex-shrink:0; }
+
+  .layout{ display:grid; grid-template-columns:300px 1fr; gap:20px; align-items:start; }
+  @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
+
+  .panel{ background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius); padding:16px; }
+  .panel + .panel{ margin-top:16px; }
+  fieldset.panel{ border:1px solid var(--border); }
+  fieldset.panel legend{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--paper-dim); font-weight:600; padding:0 4px; margin-left:4px; background:var(--bg-panel);
+  }
+  .panel h2{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--paper-dim); margin:0 0 12px; font-weight:600;
+  }
+  .hint{ font-size:12.5px; color:var(--paper-dim); line-height:1.5; margin:0 0 12px; }
+
+  /* Section chooser — native radios styled as cards: keyboard support is free */
+  .section-choice{ display:flex; flex-direction:column; gap:8px; }
+  .section-choice label{
+    display:flex; align-items:center; gap:10px; background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; padding:9px 10px; cursor:pointer; transition:border-color .15s ease, background .15s ease;
+  }
+  .section-choice label:hover{ border-color:var(--amber); }
+  .section-choice input[type=radio]{ accent-color:var(--amber); width:15px; height:15px; flex-shrink:0; }
+  .section-choice input[type=radio]:focus-visible + .swatch-icon{ outline:2px solid var(--paper); outline-offset:2px; }
+  .section-choice label:has(input:checked){ border-color:var(--amber); background:rgba(232,163,61,.08); }
+  .swatch-icon{ width:28px; height:28px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .swatch-icon svg{ width:100%; height:100%; }
+  .section-choice .label-text{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--paper); }
+  .section-choice .label-info{ flex:1; min-width:0; }
+  .section-choice .label-sub{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--paper-faint); display:block; }
+
+  .field-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .field{ flex:1; min-width:0; }
+  .field label{
+    display:block; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--paper-faint); margin-bottom:4px;
+  }
+  .field input[type=text]{
+    width:100%; background:var(--bg); border:1px solid var(--border); color:var(--paper-dim);
+    font-family:'IBM Plex Mono',monospace; font-size:13.5px; padding:7px 8px; border-radius:6px; outline:none;
+  }
+
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+  }
+  .toggle-row span{ font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--paper); }
+  .switch{ position:relative; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ position:absolute; inset:0; opacity:0; margin:0; cursor:pointer; width:100%; height:100%; }
+  .switch .track{
+    position:absolute; inset:0; background:var(--border); border-radius:999px; transition:background .15s ease;
+    pointer-events:none;
+  }
+  .switch .thumb{
+    position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:var(--paper);
+    transition:transform .15s ease; pointer-events:none;
+  }
+  .switch input:checked ~ .track{ background:var(--amber); }
+  .switch input:checked ~ .thumb{ transform:translateX(18px); }
+  .switch input:focus-visible ~ .track{ outline:2px solid var(--paper); outline-offset:2px; }
+
+  .feedback-box{
+    background:var(--bg); border:1px solid var(--border); border-left:3px solid var(--amber);
+    border-radius:0 8px 8px 0; padding:11px 12px; font-size:13px; line-height:1.6; color:var(--paper);
+  }
+
+  table.compare-table{ width:100%; border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:11.5px; }
+  table.compare-table th, table.compare-table td{ text-align:right; padding:6px 5px; border-bottom:1px solid var(--border); color:var(--paper-dim); }
+  table.compare-table th:first-child, table.compare-table td:first-child{ text-align:left; }
+  table.compare-table tr.active-row td{ color:var(--amber); font-weight:600; background:rgba(232,163,61,.06); }
+
+  .btn{
+    width:100%; background:var(--bg-panel-raised); border:1px dashed var(--border); color:var(--paper-dim);
+    font-family:'IBM Plex Mono',monospace; font-size:12.5px; padding:9px; border-radius:7px; cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .btn:hover{ border-color:var(--amber); color:var(--amber); }
+
+  .legend{ display:flex; flex-direction:column; gap:7px; margin-top:2px; }
+  .legend-item{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--paper-dim); }
+  .legend-item svg{ flex-shrink:0; }
+
+  .scene{ background:var(--bg-panel); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }
+  .scene-grid{ display:grid; grid-template-columns:220px 1fr; gap:14px; }
+  @media (max-width:600px){ .scene-grid{ grid-template-columns:1fr; } }
+  .scene-panel{ background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px; }
+  .scene-panel h3{
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--paper-faint); margin:0 0 6px;
+  }
+  canvas{ display:block; width:100%; background:var(--bg); border-radius:6px; }
+  #section-canvas{ height:280px; }
+  #beam-canvas{ height:280px; }
+  .scale-note{ font-size:11px; color:var(--paper-faint); margin:8px 4px 0; line-height:1.5; }
+  .replay-row{ display:flex; gap:8px; margin-top:10px; }
+  .replay-row .btn{ width:auto; flex:1; }
+
+  footer.credit{ text-align:center; color:var(--paper-faint); font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:22px; letter-spacing:.04em; line-height:1.8; }
+  ::selection{ background:var(--amber); color:#1B1200; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="title-block">
+      <p class="eyebrow">The Shape of Strength</p>
+      <h1>Shape &amp; Stiffness</h1>
+    </div>
+    <div class="top-controls">
+      <button class="fullscreen-btn" id="fullscreen-btn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        <span id="fullscreen-label">Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <p class="caption"><span class="dot-lead"></span> Same amount of material, arranged differently — how much does that change bending stiffness?</p>
+
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+
+      <div class="panel section-choice-panel">
+        <h2>Cross-section</h2>
+        <div class="section-choice" id="section-choice">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Readouts</h2>
+        <div class="field-row">
+          <div class="field"><label>Area (mm²)</label><input type="text" id="ro-area" readonly></div>
+          <div class="field"><label>Width × Depth (mm)</label><input type="text" id="ro-dims" readonly></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Relative second moment of inertia</label><input type="text" id="ro-i" readonly></div>
+          <div class="field"><label>Relative stiffness</label><input type="text" id="ro-stiff" readonly></div>
+        </div>
+        <div class="field-row" style="margin-bottom:0;">
+          <div class="field"><label>Relative deflection</label><input type="text" id="ro-defl" readonly></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Takeaway</h2>
+        <div class="feedback-box" id="feedback-box"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Compare all four</h2>
+        <table class="compare-table" id="compare-table"></table>
+      </div>
+
+      <div class="panel">
+        <h2>Inside the beam</h2>
+        <div class="toggle-row">
+          <span>Show what happens inside the beam</span>
+          <label class="switch">
+            <input type="checkbox" id="overlay-toggle">
+            <span class="track"></span>
+            <span class="thumb"></span>
+          </label>
+        </div>
+        <div class="legend" style="margin-top:12px;">
+          <div class="legend-item">
+            <svg width="26" height="14" viewBox="0 0 26 14"><path d="M2 2 L10 12 M8 2 L16 12 M14 2 L22 12" stroke="#5EC8D8" stroke-width="1.6" fill="none"/></svg>
+            Compression (top) — one diagonal hatch direction
+          </div>
+          <div class="legend-item">
+            <svg width="26" height="14" viewBox="0 0 26 14"><path d="M2 12 L10 2 M8 12 L16 2 M14 12 L22 2" stroke="#DD7086" stroke-width="1.6" fill="none"/></svg>
+            Tension (bottom) — opposite diagonal hatch
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <button class="btn" id="reset-btn">↺ Reset to flat strip</button>
+      </div>
+
+    </div>
+
+    <!-- SCENE -->
+    <div class="scene">
+      <div class="scene-grid">
+        <div class="scene-panel">
+          <h3>Cross-section</h3>
+          <canvas id="section-canvas"></canvas>
+        </div>
+        <div class="scene-panel">
+          <h3>Simply supported beam — same span, same central load</h3>
+          <canvas id="beam-canvas"></canvas>
+          <div class="replay-row">
+            <button class="btn" id="replay-btn">▸ Replay deflection</button>
+          </div>
+        </div>
+      </div>
+      <p class="scale-note" id="scale-note">Deflection is shown magnified and on a compressed scale so every shape stays visible — read the "Relative deflection" figure for the true ratio, not the on-screen sag.</p>
+    </div>
+
+  </div>
+
+  <footer class="credit">
+    CONS10001 Principles of Buildings<br>
+    
+  </footer>
+</div>
+
+<script>
+(function(){
+  const COLORS = {
+    grid:'#2A3648', axis:'#46536A', dim:'#93A1B4', paper:'#F0EDE4',
+    amber:'#E8A33D', teal:'#5EC8D8', rose:'#DD7086', violet:'#A88FD8', gold:'#E0CB5E', green:'#7ED957'
+  };
+
+  // ---------- section geometry (all mm) ----------
+  // Every relative figure below is computed from these dimensions at runtime — none are hand-assigned.
+  const SECTIONS = [
+    { id:'flat',    name:'Flat rectangle',    sub:'100 × 10 mm',  type:'rect',   b:100, d:10 },
+    { id:'upright', name:'Upright rectangle', sub:'10 × 100 mm',  type:'rect',   b:10,  d:100 },
+    { id:'ibeam',   name:'I-section',         sub:'≈ same area',  type:'ibeam',  D:100, bf:47, tf:6, tw:5 },
+    { id:'hollow',  name:'Hollow rectangle',  sub:'≈ same area',  type:'hollow', Bo:30, Do:80, t:5 }
+  ];
+
+  function computeProps(s){
+    let area, I, width, depth;
+    if(s.type==='rect'){
+      area = s.b*s.d;
+      I = s.b*Math.pow(s.d,3)/12;
+      width = s.b; depth = s.d;
+    } else if(s.type==='ibeam'){
+      const webDepth = s.D - 2*s.tf;
+      area = 2*s.bf*s.tf + s.tw*webDepth;
+      const I_web = s.tw*Math.pow(webDepth,3)/12;
+      const flangeArea = s.bf*s.tf;
+      const flangeDist = s.D/2 - s.tf/2;
+      const I_flange = (s.bf*Math.pow(s.tf,3)/12) + flangeArea*Math.pow(flangeDist,2);
+      I = I_web + 2*I_flange;
+      width = s.bf; depth = s.D;
+    } else { // hollow
+      const Bi = s.Bo - 2*s.t, Di = s.Do - 2*s.t;
+      area = s.Bo*s.Do - Bi*Di;
+      I = (s.Bo*Math.pow(s.Do,3) - Bi*Math.pow(Di,3))/12;
+      width = s.Bo; depth = s.Do;
+    }
+    return { area, I, width, depth };
+  }
+
+  const REF_ID = 'flat';
+  const PROPS = {};
+  SECTIONS.forEach(s=>{ PROPS[s.id] = computeProps(s); });
+  const I_REF = PROPS[REF_ID].I;
+  SECTIONS.forEach(s=>{
+    const p = PROPS[s.id];
+    p.relI = p.I / I_REF;
+    p.relStiff = p.relI;          // same material & E throughout, so stiffness ratio = I ratio
+    p.relDefl = I_REF / p.I;      // deflection under a fixed load is inversely proportional to I
+  });
+
+  const FEEDBACK = {
+    flat:    'This is the reference shape. Most of its material sits close to the neutral axis, where it contributes very little to bending resistance.',
+    upright: 'Same material, greater depth, much greater bending stiffness — turning the same strip on its side moves material away from the neutral axis.',
+    ibeam:   'The flanges place material in the high-value zones far from the neutral axis, which is why an I-section can out-stiffen even a solid rectangle of the same area.',
+    hollow:  'A hollow section removes material from the middle while retaining material around the outside — the material near the neutral axis was doing little work anyway.'
+  };
+
+  let current = 'flat';
+  let overlayOn = false;
+
+  // ---------- section chooser ----------
+  function shapeIcon(s){
+    // small monochrome outline used in the sidebar card
+    if(s.type==='rect'){
+      const w = s.b>=s.d ? 22 : Math.max(6, 22*(s.b/s.d));
+      const h = s.d>=s.b ? 22 : Math.max(6, 22*(s.d/s.b));
+      return `<svg viewBox="0 0 28 28"><rect x="${14-w/2}" y="${14-h/2}" width="${w}" height="${h}" fill="none" stroke="${COLORS.paper}" stroke-width="2"/></svg>`;
+    } else if(s.type==='ibeam'){
+      return `<svg viewBox="0 0 28 28"><path d="M6 5 H22 M6 5 V8 M22 5 V8 M14 8 V20 M6 23 H22 M6 20 V23 M22 20 V23" fill="none" stroke="${COLORS.paper}" stroke-width="2" stroke-linecap="round"/></svg>`;
+    } else {
+      return `<svg viewBox="0 0 28 28"><rect x="5" y="7" width="18" height="14" fill="none" stroke="${COLORS.paper}" stroke-width="2"/><rect x="9" y="10.5" width="10" height="7" fill="none" stroke="${COLORS.paper}" stroke-width="1.4" stroke-dasharray="1.5 1.5"/></svg>`;
+    }
+  }
+
+  function buildChooser(){
+    const wrap = document.getElementById('section-choice');
+    wrap.innerHTML = SECTIONS.map(s => `
+      <label>
+        <input type="radio" name="section" value="${s.id}" ${s.id===current?'checked':''}>
+        <span class="swatch-icon">${shapeIcon(s)}</span>
+        <span class="label-info">
+          <span class="label-text">${s.name}</span>
+          <span class="label-sub">${s.sub}</span>
+        </span>
+      </label>
+    `).join('');
+    wrap.querySelectorAll('input[type=radio]').forEach(inp=>{
+      inp.addEventListener('change', e=>{
+        if(e.target.checked){ current = e.target.value; onSectionChange(); }
+      });
+    });
+  }
+
+  // ---------- readouts / feedback / comparison table ----------
+  function fmt(n, d){ return Number(n).toFixed(d===undefined?1:d); }
+
+  function syncReadouts(){
+    const s = SECTIONS.find(x=>x.id===current);
+    const p = PROPS[current];
+    document.getElementById('ro-area').value = fmt(p.area,0) + ' mm²';
+    document.getElementById('ro-dims').value = fmt(p.width,0) + ' × ' + fmt(p.depth,0) + ' mm';
+    document.getElementById('ro-i').value = fmt(p.relI,2) + '×';
+    document.getElementById('ro-stiff').value = fmt(p.relStiff,2) + '×';
+    document.getElementById('ro-defl').value = fmt(p.relDefl,4) + '×';
+    document.getElementById('feedback-box').textContent = FEEDBACK[current];
+
+    const table = document.getElementById('compare-table');
+    let rows = '<tr><th>Section</th><th>Area</th><th>Rel. I</th><th>Rel. defl.</th></tr>';
+    SECTIONS.forEach(sec=>{
+      const pp = PROPS[sec.id];
+      rows += `<tr class="${sec.id===current?'active-row':''}"><td>${sec.name}</td><td>${fmt(pp.area,0)}</td><td>${fmt(pp.relI,2)}×</td><td>${fmt(pp.relDefl,4)}×</td></tr>`;
+    });
+    table.innerHTML = rows;
+  }
+
+  // ---------- cross-section canvas ----------
+  const secCanvas = document.getElementById('section-canvas');
+  const secCtx = secCanvas.getContext('2d');
+  let secCw=0, secCh=0, secDpr=1;
+
+  function resizeSection(){
+    const rect = secCanvas.getBoundingClientRect();
+    secCw = rect.width; secCh = rect.height;
+    secDpr = Math.max(1, window.devicePixelRatio||1);
+    secCanvas.width = secCw*secDpr; secCanvas.height = secCh*secDpr;
+    secCtx.setTransform(secDpr,0,0,secDpr,0,0);
+    drawSection();
+  }
+
+  function drawSection(){
+    const ctx = secCtx;
+    ctx.clearRect(0,0,secCw,secCh);
+    const s = SECTIONS.find(x=>x.id===current);
+    const p = PROPS[current];
+
+    // consistent mm->px scale across ALL sections so footprints are honestly comparable
+    const MARGIN = 30;
+    const usableW = secCw - MARGIN*2 - (overlayOn ? 70 : 0) - 50;
+    const usableH = secCh - MARGIN*2;
+    const mmScale = Math.min(usableW/100, usableH/100); // 100mm = largest overall dimension in the set
+
+    const cx = MARGIN + usableW/2;
+    const cy = secCh/2;
+
+    ctx.save();
+    ctx.strokeStyle = COLORS.paper;
+    ctx.fillStyle = 'rgba(232,163,61,0.14)';
+    ctx.lineWidth = 2;
+
+    if(s.type==='rect'){
+      const w = s.b*mmScale, h = s.d*mmScale;
+      ctx.beginPath(); ctx.rect(cx-w/2, cy-h/2, w, h); ctx.fill(); ctx.stroke();
+    } else if(s.type==='ibeam'){
+      const D=s.D*mmScale, bf=s.bf*mmScale, tf=s.tf*mmScale, tw=s.tw*mmScale;
+      const top = cy-D/2, bot = cy+D/2;
+      ctx.beginPath();
+      ctx.moveTo(cx-bf/2, top);
+      ctx.lineTo(cx+bf/2, top);
+      ctx.lineTo(cx+bf/2, top+tf);
+      ctx.lineTo(cx+tw/2, top+tf);
+      ctx.lineTo(cx+tw/2, bot-tf);
+      ctx.lineTo(cx+bf/2, bot-tf);
+      ctx.lineTo(cx+bf/2, bot);
+      ctx.lineTo(cx-bf/2, bot);
+      ctx.lineTo(cx-bf/2, bot-tf);
+      ctx.lineTo(cx-tw/2, bot-tf);
+      ctx.lineTo(cx-tw/2, top+tf);
+      ctx.lineTo(cx-bf/2, top+tf);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    } else { // hollow
+      const Bo=s.Bo*mmScale, Do=s.Do*mmScale, t=s.t*mmScale;
+      ctx.beginPath(); ctx.rect(cx-Bo/2, cy-Do/2, Bo, Do); ctx.fill(); ctx.stroke();
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath(); ctx.rect(cx-Bo/2+t, cy-Do/2+t, Bo-2*t, Do-2*t); ctx.fill();
+      ctx.restore();
+      ctx.beginPath(); ctx.rect(cx-Bo/2+t, cy-Do/2+t, Bo-2*t, Do-2*t); ctx.stroke();
+    }
+    ctx.restore();
+
+    // neutral axis
+    const widthPx = p.width*mmScale;
+    const depthPx = p.depth*mmScale;
+    ctx.save();
+    ctx.strokeStyle = COLORS.green; ctx.lineWidth = 1.2; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(cx-widthPx/2-14, cy); ctx.lineTo(cx+widthPx/2+14, cy); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = COLORS.green;
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+    ctx.textAlign = 'left'; ctx.textBaseline='middle';
+    ctx.fillText('N.A.', cx+widthPx/2+18, cy);
+    ctx.restore();
+
+    if(overlayOn) drawStrainOverlay(ctx, cx, cy, depthPx, widthPx);
+  }
+
+  function drawStrainOverlay(ctx, shapeCx, cy, depthPx, widthPx){
+    const triW = 46;                     // fixed visual width — qualitative, not a computed strain value
+    const ox = shapeCx + Math.max(widthPx/2, 30) + 34;
+    const top = cy - depthPx/2, bot = cy + depthPx/2;
+
+    ctx.save();
+    // compression half (top) — hatch one direction, teal
+    ctx.beginPath();
+    ctx.moveTo(ox, cy); ctx.lineTo(ox+triW, top); ctx.lineTo(ox, top); ctx.closePath();
+    ctx.fillStyle = 'rgba(94,200,216,0.18)'; ctx.fill();
+    ctx.strokeStyle = COLORS.teal; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.save(); ctx.clip();
+    ctx.strokeStyle = COLORS.teal; ctx.lineWidth = 1;
+    for(let i=-4; i<8; i++){
+      ctx.beginPath(); ctx.moveTo(ox+i*8, top); ctx.lineTo(ox+i*8+ (cy-top), cy); ctx.stroke();
+    }
+    ctx.restore();
+
+    // tension half (bottom) — opposite hatch, rose
+    ctx.beginPath();
+    ctx.moveTo(ox, cy); ctx.lineTo(ox+triW, bot); ctx.lineTo(ox, bot); ctx.closePath();
+    ctx.fillStyle = 'rgba(221,112,134,0.18)'; ctx.fill();
+    ctx.strokeStyle = COLORS.rose; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.save(); ctx.clip();
+    ctx.strokeStyle = COLORS.rose; ctx.lineWidth = 1;
+    for(let i=-4; i<8; i++){
+      ctx.beginPath(); ctx.moveTo(ox+i*8, bot); ctx.lineTo(ox+i*8+(bot-cy), cy); ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.fillStyle = COLORS.teal;
+    ctx.font = "600 10.5px 'IBM Plex Mono', monospace";
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('COMPRESSION', ox+2, top-6);
+    ctx.fillStyle = COLORS.rose;
+    ctx.textBaseline = 'top';
+    ctx.fillText('TENSION', ox+2, bot+6);
+    ctx.restore();
+  }
+
+  // ---------- beam canvas (animated deflection) ----------
+  const beamCanvas = document.getElementById('beam-canvas');
+  const beamCtx = beamCanvas.getContext('2d');
+  let beamCw=0, beamCh=0, beamDpr=1;
+  let animProgress = 1, animTimer = null, animStart = 0;
+  const ANIM_MS = 850;
+
+  function resizeBeam(){
+    const rect = beamCanvas.getBoundingClientRect();
+    beamCw = rect.width; beamCh = rect.height;
+    beamDpr = Math.max(1, window.devicePixelRatio||1);
+    beamCanvas.width = beamCw*beamDpr; beamCanvas.height = beamCh*beamDpr;
+    beamCtx.setTransform(beamDpr,0,0,beamDpr,0,0);
+    drawBeam();
+  }
+
+  function easeOutCubic(t){ return 1-Math.pow(1-t,3); }
+
+  // normalized simply-supported, central-point-load deflection shape, s in [0,1] (0=left support,1=right)
+  function shapeNorm(s){
+    const ss = s<=0.5 ? s : 1-s;
+    return ss*(3-4*ss*ss); // =1 exactly at s=0.5 (midspan), =0 at supports
+  }
+
+  function drawBeam(){
+    const ctx = beamCtx;
+    ctx.clearRect(0,0,beamCw,beamCh);
+    const p = PROPS[current];
+    const s = SECTIONS.find(x=>x.id===current);
+
+    const marginX = 34, marginTop = 34;
+    const spanPx = beamCw - marginX*2;
+    const baselineY = marginTop + 30;
+    const maxSagPx = 70;
+    // sqrt-compressed so the ~200x real range between sections stays visible on screen
+    const visualSag = maxSagPx * Math.sqrt(p.relDefl) * easeOutCubic(animProgress);
+
+    // beam thickness reflects overall depth, just for visual flavour (not to scale)
+    const thickness = Math.max(6, Math.min(34, p.depth*0.28));
+
+    // supports
+    ctx.save();
+    ctx.fillStyle = COLORS.dim;
+    [marginX, marginX+spanPx].forEach(sx=>{
+      ctx.beginPath();
+      ctx.moveTo(sx, baselineY+thickness/2);
+      ctx.lineTo(sx-10, baselineY+thickness/2+16);
+      ctx.lineTo(sx+10, baselineY+thickness/2+16);
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.restore();
+
+    // deflected beam outline
+    const steps = 40;
+    const topPts = [], botPts = [];
+    for(let i=0;i<=steps;i++){
+      const sNorm = i/steps;
+      const x = marginX + sNorm*spanPx;
+      const y = baselineY + visualSag*shapeNorm(sNorm);
+      topPts.push([x, y-thickness/2]);
+      botPts.push([x, y+thickness/2]);
+    }
+    ctx.save();
+    ctx.fillStyle = 'rgba(232,163,61,0.16)';
+    ctx.strokeStyle = COLORS.amber; ctx.lineWidth = 2;
+    ctx.beginPath();
+    topPts.forEach(([x,y],i)=> i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+    for(let i=botPts.length-1;i>=0;i--) ctx.lineTo(botPts[i][0], botPts[i][1]);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+
+    // undeformed reference line (dashed) so the sag is legible against the original position
+    ctx.save();
+    ctx.strokeStyle = COLORS.dim; ctx.globalAlpha=0.5; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(marginX, baselineY); ctx.lineTo(marginX+spanPx, baselineY); ctx.stroke();
+    ctx.restore();
+
+    // load arrow at midspan
+    const midX = marginX+spanPx/2;
+    const midY = baselineY + visualSag*shapeNorm(0.5) - thickness/2;
+    ctx.save();
+    ctx.strokeStyle = COLORS.rose; ctx.fillStyle = COLORS.rose; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(midX, midY-30); ctx.lineTo(midX, midY-4); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(midX, midY); ctx.lineTo(midX-6, midY-10); ctx.lineTo(midX+6, midY-10); ctx.closePath(); ctx.fill();
+    ctx.font = "600 12px 'IBM Plex Mono', monospace";
+    ctx.textAlign='center'; ctx.fillText('P', midX, midY-34);
+    ctx.restore();
+
+    // labels
+    ctx.save();
+    ctx.fillStyle = COLORS.paper; ctx.font = "600 12px 'IBM Plex Mono', monospace";
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    ctx.fillText(s.name, marginX, beamCh-10);
+    ctx.restore();
+  }
+
+  function runDeflectionAnimation(){
+    if(animTimer) cancelAnimationFrame(animTimer);
+    animStart = performance.now();
+    function tick(now){
+      const t = clamp((now-animStart)/ANIM_MS, 0, 1);
+      animProgress = t;
+      drawBeam();
+      if(t < 1) animTimer = requestAnimationFrame(tick);
+      else animTimer = null;
+    }
+    animTimer = requestAnimationFrame(tick);
+  }
+  function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
+
+  // ---------- events ----------
+  function onSectionChange(){
+    syncReadouts();
+    resizeSection();
+    runDeflectionAnimation();
+  }
+
+  document.getElementById('overlay-toggle').addEventListener('change', e=>{
+    overlayOn = e.target.checked;
+    resizeSection();
+  });
+  document.getElementById('replay-btn').addEventListener('click', runDeflectionAnimation);
+  document.getElementById('reset-btn').addEventListener('click', ()=>{
+    current = 'flat';
+    overlayOn = false;
+    document.getElementById('overlay-toggle').checked = false;
+    document.querySelectorAll('input[name=section]').forEach(r=> r.checked = (r.value==='flat'));
+    syncReadouts();
+    resizeSection();
+    runDeflectionAnimation();
+  });
+
+  window.addEventListener('resize', ()=>{ resizeSection(); resizeBeam(); });
+
+  // ---------- fullscreen ----------
+  const fsBtn = document.getElementById('fullscreen-btn');
+  const fsLabel = document.getElementById('fullscreen-label');
+  const appEl = document.querySelector('.app');
+  fsBtn.addEventListener('click', ()=>{
+    const active = document.fullscreenElement || document.webkitFullscreenElement;
+    if(!active){
+      const req = appEl.requestFullscreen || appEl.webkitRequestFullscreen;
+      if(req) req.call(appEl).catch(()=>window.open(window.location.href,'_blank'));
+      else window.open(window.location.href,'_blank');
+    } else {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
+  });
+  function onFsChange(){
+    const active = document.fullscreenElement || document.webkitFullscreenElement;
+    fsLabel.textContent = active ? 'Exit full screen' : 'Full screen';
+    resizeSection(); resizeBeam();
+  }
+  document.addEventListener('fullscreenchange', onFsChange);
+  document.addEventListener('webkitfullscreenchange', onFsChange);
+  if(!(appEl.requestFullscreen || appEl.webkitRequestFullscreen)) fsLabel.textContent = 'Open in new tab';
+
+  // ---------- init ----------
+  buildChooser();
+  syncReadouts();
+  resizeSection();
+  resizeBeam();
+  runDeflectionAnimation();
+})();
+</script>
+</body>
+</html>
